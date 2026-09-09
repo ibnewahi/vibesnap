@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const { generateSearchQueries } = require('./groqService');
 const { fetchImagesByQueries } = require('./unsplashService');
 const rateLimit = require('express-rate-limit');
+const ffmpeg = require('fluent-ffmpeg');
 
 // Load environment variables
 dotenv.config();
@@ -12,14 +13,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ──────────────────────────────────────────────
 // Environment Variables
-// ──────────────────────────────────────────────
-const {
-  GROQ_API_KEY,
-  UNSPLASH_ACCESS_KEY,
-  NODE_ENV = 'development'
-} = process.env;
+const { GROQ_API_KEY, UNSPLASH_ACCESS_KEY, NODE_ENV = 'development' } = process.env;
 
 // Validate required environment variables
 const requiredEnvVars = { GROQ_API_KEY, UNSPLASH_ACCESS_KEY };
@@ -34,9 +29,7 @@ if (missingVars.length > 0) {
   );
 }
 
-// ──────────────────────────────────────────────
 // CORS Configuration
-// ──────────────────────────────────────────────
 const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -45,10 +38,54 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Rate Limiting: Max 5 requests per 15 minutes per IP address
+
+// ──────────────────────────────────────────────
+// Video & Audio Merge Route (FIXED)
+// ──────────────────────────────────────────────
+app.post('/api/merge-video', (req, res) => {
+  const { videoBase64 } = req.body;
+  const musicPath = path.join(__dirname, 'public', 'music.mp3');
+  
+  // Convert base64 video to a temporary file
+  const tempVideoPath = path.join(__dirname, 'temp_video.webm');
+  require('fs').writeFileSync(tempVideoPath, Buffer.from(videoBase64, 'base64'));
+
+  const outputPath = path.join(__dirname, 'final_video.mp4');
+
+  ffmpeg(tempVideoPath)
+    .input(musicPath)
+    .outputOptions(['-c:v copy', '-c:a aac', '-shortest'])
+    .on('end', () => {
+      res.download(outputPath, 'vibesnap-reel.mp4', () => {
+        // Clean up temp files
+        require('fs').unlinkSync(tempVideoPath);
+        require('fs').unlinkSync(outputPath);
+      });
+    })
+    .on('error', (err) => {
+      console.error('FFmpeg Error:', err.message);
+      res.status(500).send('Failed to merge audio');
+    })
+    .save(outputPath);
+});
+
+// Proxy for images (Allows video generation to work without CORS errors)
+app.get('/api/proxy-image', async (req, res) => {
+  const { url } = req.query;
+  try {
+    const response = await fetch(url);
+    const buffer = await response.arrayBuffer();
+    res.set('Content-Type', 'image/jpeg');
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    res.status(500).send('Error fetching image');
+  }
+});
+
+// Rate Limiting: Increased to 1000 for testing
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  max: 5, // Change to 5 when going live
   message: {
     success: false,
     error: 'Rate limit exceeded',
@@ -61,45 +98,8 @@ const limiter = rateLimit({
 // Apply the rate limiter to all your generate/regenerate API routes
 app.use('/api/generate', limiter);
 app.use('/api/regenerate', limiter);
-// ── Download Endpoints ──────────────────────
-// 1. Single Image Download (Instant)
-app.get('/download-single', async (req, res) => {
-  const { url } = req.query;
-  try {
-    const response = await axios({
-      url: url,
-      method: 'GET',
-      responseType: 'stream'
-    });
-    res.setHeader('Content-Disposition', 'attachment; filename="vibesnap-image.jpg"');
-    response.data.pipe(res);
-  } catch (error) {
-    res.status(500).send('Failed to download image');
-  }
-});
 
-// 2. Download All (Opens all images in new tabs)
-app.get('/download-all', async (req, res) => {
-  const urls = JSON.parse(req.query.urls || '[]');
-  if (urls.length === 0) return res.status(400).send('No images provided');
-  
-  // Generate an HTML page that auto-opens all the images
-  let html = `<html><body style="background:#111;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
-    <h2>Your images are opening in new tabs!</h2>
-    <p>If your browser blocked them, please allow pop-ups and try again.</p>
-    <script>
-      const urls = ${JSON.stringify(urls)};
-      urls.forEach(url => { window.open(url, '_blank'); });
-    <\/script>
-  </body></html>`;
-  
-  res.send(html);
-});
-app.use('/images', (req, res) => { res.redirect(req.url); });
-
-// ──────────────────────────────────────────────
 // Middleware
-// ──────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -116,23 +116,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// ──────────────────────────────────────────────
 // Health Check Route
-// ──────────────────────────────────────────────
 app.get('/ping', (req, res) => {
   res.status(200).send('OK');
 });
 
-// ──────────────────────────────────────────────
 // Serve Frontend
-// ──────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'frontend.html'));
 });
 
-// ──────────────────────────────────────────────
 // API Routes
-// ──────────────────────────────────────────────
 app.get('/api/v1/status', (req, res) => {
   res.json({
     status: 'running',
@@ -147,13 +141,10 @@ app.get('/api/v1/status', (req, res) => {
   });
 });
 
-// ──────────────────────────────────────────────
 // POST /api/generate
-// ──────────────────────────────────────────────
 app.post('/api/generate', async (req, res) => {
   const { prompt } = req.body;
 
-  // Validate input
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
     return res.status(400).json({
       success: false,
@@ -162,7 +153,6 @@ app.post('/api/generate', async (req, res) => {
     });
   }
 
-  // Check API keys
   if (!GROQ_API_KEY) {
     return res.status(503).json({
       success: false,
@@ -183,10 +173,9 @@ app.post('/api/generate', async (req, res) => {
   console.log(`\n🎨 [Generate] New request — prompt: "${prompt}"`);
 
   try {
-    // Step 1: Generate search queries via Groq
     console.log(`🤖 [Step 1/2] Generating search queries via Groq...`);
 
-    const GROQ_TIMEOUT_MS = 30000;
+    const GROQ_TIMEOUT_MS = 60000;
     const queries = await Promise.race([
       generateSearchQueries(prompt.trim()),
       new Promise((_, reject) =>
@@ -204,7 +193,6 @@ app.post('/api/generate', async (req, res) => {
     const groqDuration = Date.now() - startTime;
     console.log(`✅ [Step 1/2] Generated ${queries.length} queries in ${groqDuration}ms`);
 
-    // Step 2: Fetch images via Unsplash
     console.log(`🖼️  [Step 2/2] Fetching images from Unsplash...`);
     const images = await fetchImagesByQueries(queries);
 
@@ -216,7 +204,6 @@ app.post('/api/generate', async (req, res) => {
     console.log(`✅ [Step 2/2] Fetched ${images.length} images in ${totalDuration - groqDuration}ms`);
     console.log(`🎉 [Generate] Complete — total time: ${totalDuration}ms\n`);
 
-    // FIXED: Removed the extra `{` here
     return res.status(200).json({
       success: true,
       data: {
@@ -283,13 +270,10 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
 // POST /api/regenerate
-// ──────────────────────────────────────────────
 app.post('/api/regenerate', async (req, res) => {
   const { prompt, index } = req.body;
 
-  // Validate input
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
     return res.status(400).json({
       success: false,
@@ -306,7 +290,6 @@ app.post('/api/regenerate', async (req, res) => {
     });
   }
 
-  // Check API keys
   if (!GROQ_API_KEY) {
     return res.status(503).json({
       success: false,
@@ -327,10 +310,9 @@ app.post('/api/regenerate', async (req, res) => {
   console.log(`\n🔄 [Regenerate] Request — prompt: "${prompt}", index: ${index}`);
 
   try {
-    // Step 1: Generate search queries via Groq
     console.log(`🤖 [Step 1/2] Generating new queries via Groq...`);
 
-    const GROQ_TIMEOUT_MS = 30000;
+    const GROQ_TIMEOUT_MS = 60000;
     const queries = await Promise.race([
       generateSearchQueries(prompt.trim()),
       new Promise((_, reject) =>
@@ -345,7 +327,6 @@ app.post('/api/regenerate', async (req, res) => {
       throw new Error('Groq service returned no valid queries');
     }
 
-    // Validate index is within bounds
     if (index >= queries.length) {
       throw new Error(`Index ${index} is out of bounds. Got ${queries.length} queries.`);
     }
@@ -354,7 +335,6 @@ app.post('/api/regenerate', async (req, res) => {
     console.log(`✅ [Step 1/2] Generated ${queries.length} queries in ${groqDuration}ms`);
     console.log(`   Using query at index ${index}: "${queries[index]}"`);
 
-    // Step 2: Fetch single image from Unsplash
     console.log(`🖼️  [Step 2/2] Fetching single image from Unsplash...`);
     const singleQuery = [queries[index]];
     const images = await fetchImagesByQueries(singleQuery);
@@ -368,7 +348,6 @@ app.post('/api/regenerate', async (req, res) => {
     console.log(`✅ [Step 2/2] Fetched new image in ${totalDuration - groqDuration}ms`);
     console.log(`🎉 [Regenerate] Complete — total time: ${totalDuration}ms\n`);
 
-    // FIXED: Removed the extra `{` here
     return res.status(200).json({
       success: true,
       data: {
@@ -442,9 +421,7 @@ app.post('/api/regenerate', async (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
 // 404 Handler
-// ──────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -453,9 +430,7 @@ app.use((req, res) => {
   });
 });
 
-// ──────────────────────────────────────────────
 // Global Error Handler
-// ──────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('\n❌ [Global Error Handler]');
   console.error('Error:', err.message);
@@ -518,9 +493,7 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json(response);
 });
 
-// ──────────────────────────────────────────────
 // Handle uncaught exceptions
-// ──────────────────────────────────────────────
 process.on('uncaughtException', (err) => {
   console.error('\n💥 [Uncaught Exception]');
   console.error('Error:', err.message);
@@ -532,18 +505,14 @@ process.on('uncaughtException', (err) => {
   }, 1000);
 });
 
-// ──────────────────────────────────────────────
 // Handle unhandled promise rejections
-// ──────────────────────────────────────────────
 process.on('unhandledRejection', (reason, promise) => {
   console.error('\n💥 [Unhandled Rejection]');
   console.error('Reason:', reason);
   console.error('');
 });
 
-// ──────────────────────────────────────────────
 // Start Server
-// ──────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 VibeSnap server running on port ${PORT}`);
   console.log(`📡 Environment: ${NODE_ENV}`);
@@ -557,4 +526,3 @@ app.listen(PORT, () => {
   console.log(`   POST /api/regenerate    → Regenerate single image\n`);
 });
 
-module.exports = app;

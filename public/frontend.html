@@ -985,6 +985,36 @@
       appearance: none;
     }
     
+        /* Mode Toggle */
+    .mode-toggle {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: var(--radius-full);
+      padding: 4px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color: white;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
     /* Fixed "Enter Pro Code" Button Style */
     #proCodeBtn {
       background: rgba(255, 255, 255, 0.03);
@@ -1020,7 +1050,8 @@
       animation: fadeInUp 0.5s ease forwards;
     }
   </style>
-</head>
+
+  </head>
 <body>
   <div class="app">
     <!-- Error Toast -->
@@ -1031,6 +1062,10 @@
       <div class="hero-badge">
         <span class="dot"></span>
         AI-Powered Visual Mood Board
+      </div>
+            <div class="mode-toggle" id="modeToggle">
+        <button class="mode-btn active" id="modeImages" onclick="setMode('images')">🎨 Images</button>
+        <button class="mode-btn" id="modeVideos" onclick="setMode('videos')">🎬 Videos</button>
       </div>
             
       <h1 class="hero-title">VibeSnap</h1>
@@ -1124,6 +1159,12 @@
       <button onclick="closeProModal()" style="width: 100%; padding: 8px; margin-top: 10px; background: transparent; border: none; color: #777; cursor: pointer; font-size: 12px;">Close</button>
     </div>
   </div>
+    <!-- Video Preview Modal -->
+  <div id="videoModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
+    <video id="generatedVideo" controls style="max-width: 90vw; max-height: 80vh; border-radius: 12px; background: #000;"></video>
+    <button onclick="downloadVideo()" style="margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">⬇️ Download Video</button>
+    <button onclick="closeVideoModal()" style="margin-top: 10px; background: transparent; border: none; color: #888; cursor: pointer; font-size: 14px;">Close</button>
+  </div>
   <div class="lightbox" id="lightbox">
     <span class="lightbox-close" id="lightboxClose">&times;</span>
     <img id="lightboxImg" src="" alt="Enlarged Image">
@@ -1159,6 +1200,27 @@
 
     let imageState = [];
     let currentPrompt = '';
+        // ── NEW: Mode State ──────────────────────
+    let currentMode = 'images'; // Default is images
+    const modeImagesBtn = document.getElementById('modeImages');
+    const modeVideosBtn = document.getElementById('modeVideos');
+    const generateBtnLabel = generateBtn.querySelector('.btn-icon');
+
+    // Function to switch modes
+    function setMode(mode) {
+      currentMode = mode;
+      
+      // Update button styles
+      if (mode === 'images') {
+        modeImagesBtn.classList.add('active');
+        modeVideosBtn.classList.remove('active');
+        generateBtn.innerHTML = '<span class="btn-icon">⚡</span> Generate Mood';
+      } else {
+        modeVideosBtn.classList.add('active');
+        modeImagesBtn.classList.remove('active');
+        generateBtn.innerHTML = '<span class="btn-icon">🎬</span> Generate Reel';
+      }
+    }
 
     vibeChips.forEach(function(chip) {
       chip.addEventListener('click', function() {
@@ -1290,7 +1352,7 @@
     }
 
     // ── Toggle Lock & Refresh ─────────────────
-    function toggleLock(index) {
+        function toggleLock(index) {
       var item = imageState[index];
       item.locked = !item.locked;
       renderGallery();
@@ -1325,30 +1387,30 @@
 
     // ── Main Generate Handler ─────────────────
     async function handleGenerate() {
+     
             // FREE USER LIMIT (3 tries per browser)
       let generateCount = parseInt(localStorage.getItem('generateCount') || '0');
       if (generateCount >= 3) {
         showError('You have reached the free limit! Please upgrade to Pro for unlimited vibes.');
         generateBtn.style.display = 'none';
         
-        let upgradeBtn = document.getElementById('upgradeBtn');
-        if (!upgradeBtn) {
-          upgradeBtn = document.createElement('button');
-          upgradeBtn.id = 'upgradeBtn';
-          upgradeBtn.className = 'generate-btn';
-          upgradeBtn.innerHTML = '⭐ Upgrade to Pro';
-          upgradeBtn.style.marginTop = '10px';
-          upgradeBtn.style.width = '100%';
-          upgradeBtn.style.justifyContent = 'center';
-          upgradeBtn.style.display = 'flex'; // Required to show it
-          // ⚠️ REPLACE THIS WITH YOUR STRIPE LINK
-          upgradeBtn.onclick = function() {
-            window.open('https://misbahkeeper.gumroad.com/l/qhsfzl', '_blank');  
-          };
-          document.querySelector('.input-section').appendChild(upgradeBtn);
-        } else {
-          upgradeBtn.style.display = 'flex';
-        }
+               // Remove old button if it exists
+        let oldUpgradeBtn = document.getElementById('upgradeBtn');
+        if (oldUpgradeBtn) oldUpgradeBtn.remove();
+
+        // Create the new button
+        let upgradeBtn = document.createElement('button');
+        upgradeBtn.id = 'upgradeBtn';
+        upgradeBtn.className = 'generate-btn';
+        upgradeBtn.innerHTML = '⭐ Upgrade to Pro';
+        upgradeBtn.style.marginTop = '10px';
+        upgradeBtn.style.width = '100%';
+        upgradeBtn.style.justifyContent = 'center';
+        upgradeBtn.style.display = 'flex';
+        upgradeBtn.onclick = function() {
+          window.open('https://misbahkeeper.gumroad.com/l/qhsfzl', '_blank');
+        };
+        document.querySelector('.input-section').appendChild(upgradeBtn);
         return;
       }
       
@@ -1419,12 +1481,17 @@
         showSkeletons();
         await new Promise(function(r) { setTimeout(r, 300); });
         renderGallery();
-
+                // If mode is videos, call the video function
+        if (currentMode === 'videos') {
+          await generateVideo(prompt);
+          return;
+        }
       } catch (error) {
         loadingSection.classList.remove('active');
         showErrorInGallery('Something went wrong', error.message || 'An unexpected error occurred.', '');
                 clearInterval(messageTimer);
-      } finally {
+        
+              } finally {
         generateBtn.disabled = false;
         vibeInput.disabled = false;
       }
@@ -1528,7 +1595,134 @@
           showError('Failed to copy prompt.');
         });
     });
-        // ── PRO CODE SYSTEM ─────────────────────
+        // ── VIDEO GENERATION LOGIC ───────────────
+     
+        async function generateVideo(prompt) {
+      // 1. Get images using existing backend
+      loadingSection.classList.add('active');
+      gallerySection.classList.remove('visible');
+      setStep(1, 'active');
+      loadingText.textContent = 'Generating video visuals...';
+      loadingSubtext.textContent = 'Asking AI to curate cinematic shots';
+
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt })
+      });
+
+      if (!response.ok) throw new Error('Server error');
+      const result = await response.json();
+
+      if (!result.success) throw new Error('Generation failed');
+      const images = result.data.images;
+
+      // 2. Update loading UI
+      setStep(1, 'done');
+      setStep(2, 'active');
+      loadingText.textContent = 'Rendering video...';
+      loadingSubtext.textContent = 'Creating cinematic motion';
+
+      // 3. Setup the video canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      const stream = canvas.captureStream(30); // 30 FPS
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks = [];
+
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const videoEl = document.getElementById('generatedVideo');
+        videoEl.src = url;
+        document.getElementById('videoModal').style.display = 'flex';
+        loadingSection.classList.remove('active');
+        gallerySection.classList.add('visible');
+        loadingText.textContent = 'Generating your vibe...';
+        loadingSubtext.textContent = 'This usually takes 3-5 seconds';
+        showError('🎬 Video generated successfully!');
+        window.lastGeneratedVideoURL = url;
+      };
+
+      recorder.start();
+
+      // 4. Preload ALL images BEFORE starting the animation
+      const imageObjects = [];
+      for (let i = 0; i < images.length; i++) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = '/api/proxy-image?url=' + encodeURIComponent(images[i]);
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve; // Don't crash if image fails
+        });
+        imageObjects.push(img);
+      }
+
+      // 5. Animate each image (Ken Burns effect)
+      const durationPerImage = 2.5; // 2.5 seconds per image
+      const totalFrames = images.length * durationPerImage * 30;
+
+      for (let frame = 0; frame < totalFrames; frame++) {
+        const imageIndex = Math.floor(frame / (durationPerImage * 30));
+        const localFrame = frame % (durationPerImage * 30);
+        const progress = localFrame / (durationPerImage * 30);
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const img = imageObjects[imageIndex];
+        if (img && img.width > 0) {
+          const zoom = 1 + (progress * 0.15);
+          const imgAspect = img.width / img.height;
+          const canvasAspect = canvas.width / canvas.height;
+          let drawWidth = canvas.width * zoom;
+          let drawHeight = canvas.height * zoom;
+          
+          if (imgAspect > canvasAspect) {
+            drawHeight = canvas.height * zoom;
+            drawWidth = drawHeight * imgAspect;
+          } else {
+            drawWidth = canvas.width * zoom;
+            drawHeight = drawWidth / imgAspect;
+          }
+
+          const panX = (canvas.width - drawWidth) * progress;
+          const panY = (canvas.height - drawHeight) / 2;
+
+          ctx.drawImage(img, panX, panY, drawWidth, drawHeight);
+        }
+
+        // Capture the frame
+        await new Promise(r => setTimeout(r, 33)); // 33ms for smooth 30 FPS
+      }
+
+      // 6. Stop recording
+      recorder.stop();
+    }
+        // ── VIDEO MODAL FUNCTIONS ────────────────
+    function downloadVideo() {
+      if (window.lastGeneratedVideoURL) {
+        const link = document.createElement('a');
+        link.href = window.lastGeneratedVideoURL;
+        link.download = `vibesnap-reel-${Date.now()}.webm`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+
+    function closeVideoModal() {
+      document.getElementById('videoModal').style.display = 'none';
+      const videoEl = document.getElementById('generatedVideo');
+      videoEl.pause();
+      videoEl.src = '';
+      window.lastGeneratedVideoURL = null;
+    }
+    // ── PRO CODE SYSTEM ─────────────────────
     const proCodeBtn = document.getElementById('proCodeBtn');
     const proCodeModal = document.getElementById('proCodeModal');
     const proCodeInput = document.getElementById('proCodeInput');
