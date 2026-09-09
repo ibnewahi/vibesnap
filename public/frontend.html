@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeSnap — Capture the Vibe</title>
+  <style>
+    /* ══════════════════════════════════════════════
+       RESET & VARIABLES
+       ══════════════════════════════════════════════ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-deep:       #06040e;
+      --bg-primary:    #0c0a1a;
+      --bg-surface:    rgba(255, 255, 255, 0.03);
+      --bg-glass:      rgba(255, 255, 255, 0.05);
+      --bg-glass-hover:rgba(255, 255, 255, 0.08);
+      --bg-card:       rgba(15, 12, 30, 0.6);
+
+      --border-subtle:  rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.09);
+      --border-hover:   rgba(255, 255, 255, 0.15);
+      --border-glow:    rgba(139, 92, 246, 0.35);
+
+      --text-primary:   #f0eef8;
+      --text-secondary: #9b95b8;
+      --text-muted:     #5c5680;
+
+      --accent:         #8b5cf6;
+      --accent-light:   #a78bfa;
+      --accent-glow:    rgba(139, 92, 246, 0.35);
+      --accent-deep:    #6d28d9;
+      --blue:           #60a5fa;
+      --blue-glow:      rgba(96, 165, 250, 0.25);
+      --success:        #34d399;
+      --error:          #f87171;
+
+      --radius-sm:  10px;
+      --radius-md:  16px;
+      --radius-lg:  20px;
+      --radius-xl:  24px;
+      --radius-full: 999px;
+
+      --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.25);
+      --shadow-md:  0 8px 32px rgba(0, 0, 0, 0.35);
+      --shadow-lg:  0 16px 48px rgba(0, 0, 0, 0.45);
+      --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                   'Helvetica Neue', Arial, sans-serif;
+      color: var(--text-primary);
+      overflow-x: hidden;
+      background: var(--bg-deep);
+    }
+
+    /* Gradient background: dark purple → dark blue */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(160deg,
+          #1a0533 0%,
+          #0f0a2e 25%,
+          #0a0e2a 50%,
+          #071428 75%,
+          #050d1f 100%
+        );
+      z-index: 0;
+    }
+
+    /* Ambient glow orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 600px 500px at 15% 10%, rgba(139, 92, 246, 0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 400px at 85% 25%, rgba(59, 130, 246, 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 700px 600px at 50% 85%, rgba(99, 60, 180, 0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 300px 300px at 75% 70%, rgba(96, 165, 250, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Hero Section ──────────────────────── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 18px;
+      border-radius: var(--radius-full);
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.18);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent-light);
+      margin-bottom: 28px;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+      animation: dotPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px rgba(52, 211, 153, 0.6); }
+      50%      { opacity: 0.5; transform: scale(0.75); box-shadow: 0 0 4px rgba(52, 211, 153, 0.3); }
+    }
+
+    .hero-title {
+      font-size: clamp(3.2rem, 9vw, 6rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      background: linear-gradient(
+        135deg,
+        #ffffff 0%,
+        #ddd6fe 30%,
+        #a78bfa 55%,
+        #818cf8 75%,
+        #60a5fa 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.15));
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--text-secondary);
+      max-width: 500px;
+      line-height: 1.7;
+      margin-bottom: 44px;
+    }
+
+    /* ── Input Section ─────────────────────── */
+    .input-section {
+      width: 100%;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(15, 12, 35, 0.6);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 6px;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--border-glow);
+      box-shadow:
+        var(--shadow-md),
+        0 0 0 3px rgba(139, 92, 246, 0.08),
+        var(--shadow-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .input-wrapper.shake {
+      animation: shake 0.4s ease-in-out;
+      border-color: rgba(248, 113, 113, 0.5);
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.1);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(6px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+
+    .input-icon {
+      padding: 0 10px 0 18px;
+      font-size: 20px;
+      opacity: 0.4;
+      flex-shrink: 0;
+    }
+
+    .vibe-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 15px;
+      color: var(--text-primary);
+      padding: 14px 8px;
+      font-family: inherit;
+      min-width: 0;
+    }
+
+    .vibe-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .generate-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 26px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      box-shadow: 0 4px 16px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      flex-shrink: 0;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--accent-light), #7c3aed);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .generate-btn:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .generate-btn .btn-icon {
+      font-size: 15px;
+    }
+
+    /* ── Vibe Chips ────────────────────────── */
+    .vibe-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .vibe-chip {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: inherit;
+    }
+
+    .vibe-chip:hover {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.25);
+      color: var(--accent-light);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+    }
+
+    /* ── Loading Section ───────────────────── */
+    .loading-section {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 64px 24px;
+    }
+
+    .loading-section.active {
+      display: flex;
+    }
+
+    .spinner-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      margin-bottom: 28px;
+    }
+
+    .spinner {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 3px solid rgba(139, 92, 246, 0.12);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent-light);
+      animation: spinRotate 0.9s linear infinite;
+      position: relative;
+    }
+
+    .spinner::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      border: 2px solid rgba(96, 165, 250, 0.08);
+      border-bottom-color: var(--blue);
+      animation: spinRotate 1.4s linear infinite reverse;
+    }
+
+    .spinner::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      animation: spinnerPulse 2s ease-in-out infinite;
+      z-index: -1;
+    }
+
+    @keyframes spinRotate {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes spinnerPulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50%      { opacity: 0.8; transform: scale(1.15); }
+    }
+
+    .loading-text {
+      color: var(--text-secondary);
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .loading-subtext {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .loading-steps {
+      display: flex;
+      gap: 28px;
+      margin-top: 28px;
+    }
+
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: color 0.3s ease;
+    }
+
+    .loading-step.active {
+      color: var(--accent-light);
+    }
+
+    .loading-step.done {
+      color: var(--success);
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .loading-step.active .step-dot {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+      animation: dotPulse 1s ease-in-out infinite;
+    }
+
+    .loading-step.done .step-dot {
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+    }
+
+    /* ── Error Toast ───────────────────────── */
+    .error-toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-120%);
+      padding: 14px 24px;
+      border-radius: var(--radius-md);
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: var(--error);
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 100;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 32px rgba(248, 113, 113, 0.15);
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .error-toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Gallery Section ───────────────────── */
+    .gallery-section {
+      padding: 24px 24px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: none;
+    }
+
+    .gallery-section.visible {
+      display: block;
+    }
+
+    .gallery-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding: 0 4px;
+    }
+
+    .gallery-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gallery-count {
+      padding: 3px 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(139, 92, 246, 0.12);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: var(--accent-light);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+        .download-all-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .download-all-btn:hover {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.3);
+      color: var(--accent-light);
+      transform: translateY(-1px);
+    }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .lightbox.active {
+      display: flex;
+    }
+
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 80vh;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      color: white;
+      font-size: 36px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 15px;
+      border-radius: var(--radius-sm);
+      line-height: 1;
+      transition: all 0.2s ease;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+
+    .lightbox-download-btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px var(--accent-glow);
+      font-family: inherit;
+    }
+
+    .lightbox-download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+
+    /* ── Image Cards ───────────────────────── */
+    .image-card {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .image-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px) scale(1.01);
+      box-shadow:
+        var(--shadow-lg),
+        0 0 30px rgba(139, 92, 246, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .image-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .image-card:hover img {
+      transform: scale(1.08);
+    }
+
+    .image-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(
+        135deg,
+        rgba(139, 92, 246, 0.25),
+        rgba(96, 165, 250, 0.12),
+        transparent 60%
+      );
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 1;
+      pointer-events: none;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      -webkit-mask-composite: xor;
+      padding: 1px;
+    }
+
+    .image-card:hover::before {
+      opacity: 1;
+    }
+
+    .image-card.locked {
+      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.08);
+    }
+
+    .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        rgba(6, 4, 14, 0.88) 0%,
+        rgba(6, 4, 14, 0.35) 40%,
+        transparent 65%
+      );
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 18px;
+      z-index: 2;
+    }
+
+    .image-card:hover .card-overlay {
+      opacity: 1;
+    }
+
+    .card-query {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.88);
+      max-width: 60%;
+      line-height: 1.5;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      font-weight: 400;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .card-action-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px) saturate(1.5);
+      -webkit-backdrop-filter: blur(16px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 15px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      color: white;
+      padding: 0;
+      font-family: inherit;
+    }
+
+    .card-action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: scale(1.12);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .card-action-btn:active {
+      transform: scale(1.02);
+    }
+
+    .card-action-btn.locked {
+      background: rgba(139, 92, 246, 0.25);
+      border-color: rgba(139, 92, 246, 0.35);
+      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .card-action-btn.locked:hover {
+      background: rgba(139, 92, 246, 0.35);
+    }
+
+    .image-card.skeleton::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.03) 40%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.03) 60%,
+        transparent 100%
+      );
+      animation: shimmer 1.8s ease-in-out infinite;
+      z-index: 3;
+    }
+
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+      grid-column: 1 / -1;
+    }
+
+    .empty-icon {
+      font-size: 52px;
+      margin-bottom: 18px;
+      opacity: 0.4;
+      filter: grayscale(0.3);
+    }
+
+    .empty-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .empty-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 320px;
+      line-height: 1.6;
+    }
+
+    /* ── Error State ───────────────────────── */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      text-align: center;
+      grid-column: 1 / -1;
+      background: rgba(248, 113, 113, 0.05);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(12px);
+    }
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--error);
+      margin-bottom: 10px;
+    }
+
+    .error-message {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 400px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .error-details {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'Courier New', monospace;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .error-retry-btn {
+      padding: 10px 24px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .error-retry-btn:hover {
+      background: linear-gradient(135deg, var(--accent-light), #7c3aed);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+
+    /* ── Footer ────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 28px 24px;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: auto;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(6, 4, 14, 0.4);
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .footer-text span {
+      background: linear-gradient(90deg, var(--accent-light), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+
+    /* ── Responsive ────────────────────────── */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 60px 20px 36px;
+      }
+
+      .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 14px;
+      }
+
+      .loading-steps {
+        gap: 18px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .hero {
+        padding: 48px 16px 28px;
+      }
+
+      .input-wrapper {
+        flex-direction: column;
+        padding: 8px;
+        gap: 8px;
+        border-radius: var(--radius-md);
+      }
+
+      .input-icon {
+        display: none;
+      }
+
+      .vibe-input {
+        width: 100%;
+        text-align: center;
+        padding: 12px 8px;
+      }
+
+      .generate-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px;
+        border-radius: var(--radius-sm);
+      }
+
+      .gallery-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .gallery-section {
+        padding: 20px 16px 60px;
+      }
+
+      .loading-steps {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .vibe-chips {
+        gap: 6px;
+      }
+
+      .vibe-chip {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .card-overlay {
+        padding: 12px;
+      }
+
+      .card-action-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .gallery-grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
+    /* ── Scrollbar ─────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.15);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 92, 246, 0.3);
+    }
+
+    ::selection {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+    }
+        /* Image Fade-In Animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .image-card {
+      animation: fadeInUp 0.5s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Error Toast -->
+    <div class="error-toast" id="errorToast"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        AI-Powered Visual Mood Board
+      </div>
+            <button id="proCodeBtn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; margin-bottom: 20px;">
+        🔑 Enter Pro Code
+      </button>
+      <h1 class="hero-title">VibeSnap</h1>
+      <p class="hero-subtitle">
+        Describe a feeling, a mood, a vibe — and watch AI curate the perfect visual collection for you.
+      </p>
+
+      <div class="input-section">
+        <div class="input-wrapper" id="inputWrapper">
+          <span class="input-icon">✨</span>
+          <input
+            type="text"
+            class="vibe-input"
+            id="vibeInput"
+            placeholder="Describe your vibe... e.g. 'melancholy autumn evening'"
+            autocomplete="off"
+          />
+          <button class="generate-btn" id="generateBtn">
+            <span class="btn-icon">⚡</span>
+            Generate Mood
+          </button>
+        </div>
+
+        <div class="vibe-chips">
+          <span class="vibe-chip" data-vibe="melancholy autumn evening with golden leaves">🍂 Autumn Melancholy</span>
+          <span class="vibe-chip" data-vibe="energetic neon cyberpunk cityscape">🌃 Cyberpunk Energy</span>
+          <span class="vibe-chip" data-vibe="serene mountain lake at sunrise">🏔️ Mountain Serenity</span>
+          <span class="vibe-chip" data-vibe="nostalgic 90s bedroom with fairy lights">💫 90s Nostalgia</span>
+          <span class="vibe-chip" data-vibe="tropical sunset on a quiet beach">🌅 Tropical Sunset</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Section -->
+    <section class="loading-section" id="loadingSection">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+      </div>
+      <p class="loading-text" id="loadingText">Generating your vibe...</p>
+      <p class="loading-subtext" id="loadingSubtext">This usually takes 3-5 seconds</p>
+      
+      <div class="loading-steps">
+        <div class="loading-step" id="step1">
+          <span class="step-dot"></span>
+          <span>AI Queries</span>
+        </div>
+        <div class="loading-step" id="step2">
+          <span class="step-dot"></span>
+          <span>Fetching Images</span>
+        </div>
+        <div class="loading-step" id="step3">
+          <span class="step-dot"></span>
+          <span>Building Gallery</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="gallery-section" id="gallerySection">
+      <div class="gallery-header">
+        <div class="gallery-title">
+          🎨 Your Mood Board
+          <span class="gallery-count" id="galleryCount">0</span>
+        </div>
+              <button class="download-all-btn" id="downloadAllBtn">⬇️ Download All</button>
+                            <button class="download-all-btn" id="copyPromptBtn" style="margin-left: 10px;">📋 Copy Prompt</button>
+      </div>
+      <div class="gallery-grid" id="galleryGrid">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📸</div>
+          <p class="empty-title">No vibes captured yet</p>
+          <p class="empty-desc">Enter a mood or feeling above and click "Generate Mood" to create your visual collection.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer-text"><span>VibeSnap</span> — Powered by Groq AI & Unsplash</p>
+    </footer>
+  </div>
+
+    <!-- Lightbox Modal -->
+       <!-- Pro Code Popup -->
+  <div id="proCodeModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center;">
+    <div style="background: #1a1a2e; padding: 30px; border-radius: 16px; max-width: 400px; width: 90%; border: 1px solid rgba(139,92,246,0.3); text-align: center;">
+      <h3 style="color: #fff; margin-bottom: 15px;">Enter Pro Code</h3>
+      <input type="text" id="proCodeInput" placeholder="Paste your code here..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3f3f50; background: #0c0a1a; color: #fff; margin-bottom: 15px; font-size: 14px;">
+      <button onclick="unlockPro()" style="width: 100%; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; border: none; font-weight: bold; cursor: pointer;">Unlock Unlimited</button>
+      <button onclick="closeProModal()" style="width: 100%; padding: 8px; margin-top: 10px; background: transparent; border: none; color: #777; cursor: pointer; font-size: 12px;">Close</button>
+    </div>
+  </div>
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close" id="lightboxClose">&times;</span>
+    <img id="lightboxImg" src="" alt="Enlarged Image">
+    <button class="lightbox-download-btn" id="lightboxDownload">⬇️ Download Image</button>
+  </div>
+
+  <script>
+    // ── DOM Elements ──────────────────────────
+    const vibeInput      = document.getElementById('vibeInput');
+    const generateBtn    = document.getElementById('generateBtn');
+    const inputWrapper   = document.getElementById('inputWrapper');
+    const loadingSection = document.getElementById('loadingSection');
+    const loadingText    = document.getElementById('loadingText');
+    const loadingSubtext = document.getElementById('loadingSubtext');
+    const gallerySection = document.getElementById('gallerySection');
+    const galleryGrid    = document.getElementById('galleryGrid');
+    const galleryCount   = document.getElementById('galleryCount');
+    const errorToast     = document.getElementById('errorToast');
+    const vibeChips      = document.querySelectorAll('.vibe-chip');
+
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+    const loadingMessages = [
+      "Asking AI to understand your vibe...",
+      "Searching for the perfect images...",
+      "Curating your visual mood board...",
+      "Polishing the final touches..."
+    ];
+    const lightbox       = document.getElementById('lightbox');
+    const lightboxImg    = document.getElementById('lightboxImg');
+    const lightboxClose  = document.getElementById('lightboxClose');
+    const lightboxDownload = document.getElementById('lightboxDownload');
+
+    let imageState = [];
+    let currentPrompt = '';
+
+    vibeChips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        vibeInput.value = chip.getAttribute('data-vibe');
+        vibeInput.focus();
+      });
+    });
+
+    // ── Helpers for Instant Downloads ─────────
+    function getQueryString(url) {
+      // Gets the exact image URL (without the extra parameters)
+            return url.split('?')[0] + '?w=1920&fm=jpg&fit=crop&ixid=' + (url.match(/ixid=([^&]+)/) ? url.match(/ixid=([^&]+)/)[1] : '');
+    }
+
+    function triggerDownload(url, filename) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ── Error Toast & Gallery Errors ──────────
+    function showError(message) {
+      errorToast.textContent = '⚠️ ' + message;
+      errorToast.classList.add('visible');
+      setTimeout(function() {
+        errorToast.classList.remove('visible');
+      }, 4000);
+    }
+
+    function showErrorInGallery(title, message, details) {
+      loadingSection.classList.remove('active');
+      gallerySection.classList.add('visible');
+      galleryGrid.innerHTML = `
+        <div class="error-state">
+          <div class="error-icon">⚠️</div>
+          <div class="error-title">${title}</div>
+          <div class="error-message">${message}</div>
+          ${details ? `<div class="error-details">${details}</div>` : ''}
+          <button class="error-retry-btn" onclick="handleGenerate()">🔄 Try Again</button>
+        </div>
+      `;
+      const galleryHeader = document.querySelector('.gallery-header');
+      if (galleryHeader) galleryHeader.style.display = 'none';
+    }
+
+    // ── Loading Steps ─────────────────────────
+    function resetSteps() {
+      for (var i = 1; i <= 3; i++) {
+        document.getElementById('step' + i).className = 'loading-step';
+      }
+    }
+
+    function setStep(num, state) {
+      document.getElementById('step' + num).className = 'loading-step ' + state;
+    }
+
+    // ── Show Skeletons ────────────────────────
+    function showSkeletons() {
+      galleryGrid.innerHTML = '';
+      for (var i = 0; i < 5; i++) {
+        var card = document.createElement('div');
+        card.className = 'image-card skeleton';
+        galleryGrid.appendChild(card);
+      }
+    }
+
+    // ── Render Gallery ────────────────────────
+    function renderGallery() {
+      galleryGrid.innerHTML = '';
+      galleryCount.textContent = imageState.length;
+
+      imageState.forEach(function(item, index) {
+        var card = document.createElement('div');
+        card.className = 'image-card' + (item.locked ? ' locked' : '');
+
+        var img = document.createElement('img');
+        img.src = item.src;
+        img.alt = item.query || 'Generated image';
+        img.loading = 'lazy';
+        img.onerror = function() {
+          this.src = "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'%3E%3Crect fill='%231a1a2e' width='400' height='250'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%2355556a' font-size='14'%3EImage unavailable%3C/text%3E%3C/svg%3E";
+        };
+
+        var overlay = document.createElement('div');
+        overlay.className = 'card-overlay';
+
+        var queryLabel = document.createElement('span');
+        queryLabel.className = 'card-query';
+        queryLabel.textContent = item.query || 'Generated image';
+
+        var actions = document.createElement('div');
+        actions.className = 'card-actions';
+
+        var lockBtn = document.createElement('button');
+        lockBtn.className = 'card-action-btn' + (item.locked ? ' locked' : '');
+        lockBtn.innerHTML = item.locked ? '🔒' : '🔓';
+        lockBtn.title = item.locked ? 'Unlock this image' : 'Lock this image';
+        lockBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          toggleLock(index);
+        });
+
+        var refreshBtn = document.createElement('button');
+        refreshBtn.className = 'card-action-btn';
+        refreshBtn.innerHTML = '🔄';
+        refreshBtn.title = 'Get a different image';
+        refreshBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          refreshImage(index);
+        });
+
+        actions.appendChild(lockBtn);
+        actions.appendChild(refreshBtn);
+        overlay.appendChild(queryLabel);
+        overlay.appendChild(actions);
+        card.appendChild(img);
+        card.appendChild(overlay);
+
+        card.addEventListener('click', function() {
+          openLightbox(item.src);
+        });
+
+        item.element = card;
+        galleryGrid.appendChild(card);
+      });
+    }
+
+    // ── Toggle Lock & Refresh ─────────────────
+    function toggleLock(index) {
+      var item = imageState[index];
+      item.locked = !item.locked;
+      renderGallery();
+    }
+
+    function refreshImage(index) {
+      var item = imageState[index];
+      if (item.locked) return;
+      fetchRegenerateImage(currentPrompt, index)
+        .then(function(result) {
+          item.src = result.imageUrl;
+          item.query = result.query;
+          renderGallery();
+        })
+        .catch(function(error) {
+          showError('Failed to regenerate image. Please try again.');
+        });
+    }
+
+    function fetchRegenerateImage(prompt, index) {
+      return fetch('/api/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt, index: index })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) return data.data;
+        throw new Error('Failed');
+      });
+    }
+
+    // ── Main Generate Handler ─────────────────
+    async function handleGenerate() {
+            // FREE USER LIMIT (3 tries per browser)
+      let generateCount = parseInt(localStorage.getItem('generateCount') || '0');
+      if (generateCount >= 3) {
+        showError('You have reached the free limit! Please upgrade to Pro for unlimited vibes.');
+        generateBtn.style.display = 'none';
+        
+        let upgradeBtn = document.getElementById('upgradeBtn');
+        if (!upgradeBtn) {
+          upgradeBtn = document.createElement('button');
+          upgradeBtn.id = 'upgradeBtn';
+          upgradeBtn.className = 'generate-btn';
+          upgradeBtn.innerHTML = '⭐ Upgrade to Pro';
+          upgradeBtn.style.marginTop = '10px';
+          upgradeBtn.style.width = '100%';
+          upgradeBtn.style.justifyContent = 'center';
+          upgradeBtn.style.display = 'flex'; // Required to show it
+          // ⚠️ REPLACE THIS WITH YOUR STRIPE LINK
+          upgradeBtn.onclick = function() {
+            window.open('https://misbahkeeper.gumroad.com/l/qhsfzl', '_blank');  
+          };
+          document.querySelector('.input-section').appendChild(upgradeBtn);
+        } else {
+          upgradeBtn.style.display = 'flex';
+        }
+        return;
+      }
+      
+      // Increment the counter (runs after they pass the check)
+      generateCount++;
+      localStorage.setItem('generateCount', generateCount.toString());
+      var prompt = vibeInput.value.trim();
+      if (!prompt) {
+        inputWrapper.classList.add('shake');
+        setTimeout(function() { inputWrapper.classList.remove('shake'); }, 500);
+        return;
+      }
+
+      generateBtn.disabled = true;
+      vibeInput.disabled = true;
+      loadingSection.classList.add('active');
+      gallerySection.classList.remove('visible');
+      resetSteps();
+
+      imageState = [];
+            // Dynamic Loading Text
+      let messageIndex = 0;
+      loadingText.textContent = loadingMessages[0];
+      const messageTimer = setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        loadingText.textContent = loadingMessages[messageIndex];
+      }, 1500);
+
+      try {
+        setStep(1, 'active');
+        loadingText.textContent = 'Generating search queries...';
+        loadingSubtext.textContent = 'Asking Groq AI to translate your vibe';
+
+        var response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt })
+        });
+
+        if (!response.ok) {
+          throw new Error('Server error');
+        }
+
+        var result = await response.json();
+        setStep(1, 'done');
+
+        setStep(2, 'active');
+        loadingText.textContent = 'Processing images...';
+        loadingSubtext.textContent = 'Building your mood board';
+
+        if (!result.success) throw new Error('Generation failed');
+
+        var queries = result.data.queries || [];
+        var images = result.data.images || [];
+
+        setStep(2, 'done');
+        setStep(3, 'active');
+        loadingText.textContent = 'Building your mood board...';
+        loadingSubtext.textContent = 'Almost there!';
+
+        currentPrompt = prompt;
+        imageState = images.map(function(url, i) {
+          return { src: url, locked: false, element: null, query: queries[i] || 'Generated image' };
+        });
+
+        loadingSection.classList.remove('active');
+        gallerySection.classList.add('visible');
+        showSkeletons();
+        await new Promise(function(r) { setTimeout(r, 300); });
+        renderGallery();
+
+      } catch (error) {
+        loadingSection.classList.remove('active');
+        showErrorInGallery('Something went wrong', error.message || 'An unexpected error occurred.', '');
+                clearInterval(messageTimer);
+      } finally {
+        generateBtn.disabled = false;
+        vibeInput.disabled = false;
+      }
+    }
+
+    // ── Lightbox Functions ────────────────────
+    function openLightbox(src) {
+      lightboxImg.src = src;
+      lightbox.classList.add('active');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+    }
+
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+
+    // ── INSTANT DOWNLOAD LOGIC ────────────────
+    
+       // Single Image Download (Direct download via Blob)
+    lightboxDownload.addEventListener('click', async () => {
+      if (lightboxImg.src) {
+        try {
+          const directUrl = getQueryString(lightboxImg.src);
+          const response = await fetch(directUrl);
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = 'vibesnap-image.jpg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+          showError('Could not download image. Please right-click and save the image instead.');
+        }
+      }
+    });
+    // Download All (Instant, no tabs, no zip)
+    downloadAllBtn.addEventListener('click', async () => {
+      if (imageState.length === 0) return;
+      
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.innerHTML = '⏳ Downloading...';
+
+      const urls = imageState.map(item => getQueryString(item.src));
+
+      // Fetch and download each image directly
+      for (let i = 0; i < urls.length; i++) {
+        try {
+          // Fetch the image from Unsplash
+          const response = await fetch(urls[i]);
+          const blob = await response.blob();
+          
+          // Create a local URL to force a browser download
+          const blobUrl = URL.createObjectURL(blob);
+          
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `vibesnap-${i + 1}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // Clean up the URL
+          URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+          // If one fails, skip it so the rest still download
+          console.error('Failed to download image ' + i, error);
+        }
+      }
+
+      // Re-enable the button
+      downloadAllBtn.disabled = false;
+      downloadAllBtn.innerHTML = '⬇️ Download All';
+    });
+
+    // ── Event Listeners ───────────────────────
+    generateBtn.addEventListener('click', handleGenerate);
+    vibeInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') handleGenerate();
+    });
+    
+    // ── Copy Prompt Button ───────────────────
+    copyPromptBtn.addEventListener('click', () => {
+      if (!currentPrompt) {
+        showError('No prompt found to copy. Generate a mood first!');
+        return;
+      }
+      navigator.clipboard.writeText(currentPrompt)
+        .then(() => {
+          copyPromptBtn.innerHTML = '✅ Copied!';
+          setTimeout(() => {
+            copyPromptBtn.innerHTML = '📋 Copy Prompt';
+          }, 2000);
+        })
+        .catch(() => {
+          showError('Failed to copy prompt.');
+        });
+    });
+        // ── PRO CODE SYSTEM ─────────────────────
+    const proCodeBtn = document.getElementById('proCodeBtn');
+    const proCodeModal = document.getElementById('proCodeModal');
+    const proCodeInput = document.getElementById('proCodeInput');
+
+    // The Secret Code (You can change this later to whatever you want!)
+    const PRO_CODE = 'MANHAPROMOCODE2024';
+
+    // Check if user is already Pro on page load
+    function checkProStatus() {
+      if (localStorage.getItem('isPro') === 'true') {
+        generateBtn.style.display = 'flex';
+        document.getElementById('upgradeBtn')?.remove();
+        proCodeBtn.style.display = 'none';
+      }
+    }
+
+    // 1. Open the modal
+    proCodeBtn.addEventListener('click', () => {
+      proCodeModal.style.display = 'flex';
+      proCodeInput.value = '';
+      proCodeInput.focus();
+    });
+
+    // 2. Close the modal
+    function closeProModal() {
+      proCodeModal.style.display = 'none';
+    }
+
+    // 3. Unlock Pro status
+    function unlockPro() {
+      const enteredCode = proCodeInput.value.trim().toUpperCase();
+      if (enteredCode === PRO_CODE) {
+        localStorage.setItem('isPro', 'true');
+        localStorage.removeItem('generateCount'); // Reset the counter so they get free tries again (they'll get unlimited now)
+        proCodeModal.style.display = 'none';
+        proCodeBtn.style.display = 'none';
+        document.getElementById('upgradeBtn')?.remove();
+        showError('🎉 Congratulations! You are now a Pro user!');
+        generateBtn.disabled = false;
+        vibeInput.disabled = false;
+      } else {
+        showError('Invalid code. Please check your email and try again.');
+      }
+    }
+
+    // 4. Run the check immediately when page loads
+    checkProStatus();
+</script>
+</body>
+</html>
