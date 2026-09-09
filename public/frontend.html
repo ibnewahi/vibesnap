@@ -170,7 +170,7 @@
       color: var(--text-secondary);
       max-width: 500px;
       line-height: 1.7;
-      margin-bottom: 44px;
+      margin-bottom: 32px;
     }
 
     /* ── Input Section ─────────────────────── */
@@ -978,6 +978,32 @@
       background: rgba(139, 92, 246, 0.3);
       color: white;
     }
+        /* Hide default HTML spinner */
+    input[type="text"], button {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+    
+    /* Fixed "Enter Pro Code" Button Style */
+    #proCodeBtn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      color: var(--text-secondary);
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
+    
+    #proCodeBtn:hover {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: var(--accent-light);
+      transform: translateY(-1px);
+    }
         /* Image Fade-In Animation */
     @keyframes fadeInUp {
       from {
@@ -1006,9 +1032,7 @@
         <span class="dot"></span>
         AI-Powered Visual Mood Board
       </div>
-            <button id="proCodeBtn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; margin-bottom: 20px;">
-        🔑 Enter Pro Code
-      </button>
+            
       <h1 class="hero-title">VibeSnap</h1>
       <p class="hero-subtitle">
         Describe a feeling, a mood, a vibe — and watch AI curate the perfect visual collection for you.
@@ -1086,6 +1110,7 @@
     <!-- Footer -->
     <footer class="footer">
       <p class="footer-text"><span>VibeSnap</span> — Powered by Groq AI & Unsplash</p>
+            <button id="proCodeBtn" style="margin-top: 12px;">🔑 Enter Pro Code</button>
     </footer>
   </div>
 
